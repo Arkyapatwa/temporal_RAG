@@ -39,7 +39,7 @@ class OpenAIConnection:
         
         self.embedding_model = OpenAIEmbeddingEncoder(config=embedding_config)
 
-    def get_embeddings_model(self):
+    def get_embeddings_model(self) -> OpenAIEmbeddingEncoder:
         return self.embedding_model
     
     async def create_embed_docs(self, elements: List[Element]) -> List[Element]:

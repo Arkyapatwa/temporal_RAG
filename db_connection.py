@@ -13,6 +13,7 @@ load_dotenv()
 
 MILVUS_HOST = os.getenv("MILVUS_HOST")
 COLLECTION_NAME = os.getenv("COLLECTION_NAME")
+COLLECTION_NAME_ELEMENTS = os.getenv("COLLECTION_NAME_ELEMENTS")
 DB_NAME = os.getenv("DB_NAME")
 
 class MilvusConnection:
@@ -42,10 +43,10 @@ class MilvusConnection:
             schema = CollectionSchema(fields, description="Collection for large dataset")
             self.milvus_client.create_collection(collection_name=COLLECTION_NAME, schema=schema)
     
-    def get_milvus_client(self):
+    def get_milvus_client(self) -> MilvusClient:
         return self.milvus_client
     
-    async def add_elements_batch(self, elements: List[Element], semaphore):
+    async def add_embeddings_batch(self, elements: List[Element], semaphore) -> None:
         try:
             async with semaphore:
                 element_id = []
@@ -68,6 +69,7 @@ class MilvusConnection:
                 self.milvus_client.insert(data=data, collection_name=COLLECTION_NAME)
         except Exception as e:
             raise e
+
 
     
         
