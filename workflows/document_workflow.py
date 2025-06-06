@@ -15,25 +15,31 @@ class DocumentWorkFlow:
             document_activities.fetch_document_activity,
             fileInput,
             start_to_close_timeout=timedelta(seconds=10),
-        )
-        
-        parse_document_activity = await workflow.execute_activity(
-            document_activities.parse_document_activity,
-            fetch_document_activity_data,
-            start_to_close_timeout=timedelta(seconds=20),
             retry_policy=RetryPolicy(maximum_attempts=3),
         )
         
+        print(type(fetch_document_activity_data))
+        parse_document_activity = await workflow.execute_activity(
+            document_activities.parse_document_activity,
+            fetch_document_activity_data,
+            start_to_close_timeout=timedelta(seconds=30),
+            retry_policy=RetryPolicy(maximum_attempts=3),
+        )
+        
+        print(type(parse_document_activity))
         embeddings_document_activity = await workflow.execute_activity(
             document_activities.embeddings_document_activity,
             parse_document_activity,
             start_to_close_timeout=timedelta(seconds=30),
+            retry_policy=RetryPolicy(maximum_attempts=3),
         )
         
+        print(type(embeddings_document_activity))
         store_document_activity = await workflow.execute_activity(
             document_activities.store_document_activity,
             embeddings_document_activity,
             start_to_close_timeout=timedelta(seconds=30),
+            retry_policy=RetryPolicy(maximum_attempts=3),
         )
         
         return store_document_activity
