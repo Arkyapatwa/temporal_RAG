@@ -13,7 +13,6 @@ load_dotenv()
 
 MILVUS_HOST = os.getenv("MILVUS_HOST")
 COLLECTION_NAME = os.getenv("COLLECTION_NAME")
-COLLECTION_NAME_ELEMENTS = os.getenv("COLLECTION_NAME_ELEMENTS")
 DB_NAME = os.getenv("DB_NAME")
 
 class MilvusConnection:

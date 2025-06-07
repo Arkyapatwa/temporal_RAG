@@ -3,14 +3,11 @@ from unstructured.documents.elements import Element
 from models.document_model import FileModel
 from db_connection import MilvusConnection
 
-from typing import List, Tuple, Dict, Any
-from collections import defaultdict
+from typing import List, Tuple, Dict
 from dataclasses import dataclass
 
 import asyncio
-import uuid
 from io import BytesIO
-import json
 import structlog
 
 logger = structlog.get_logger()
@@ -49,7 +46,7 @@ class StorageManager:
 storage = StorageManager()
 
 @activity.defn
-async def fetch_document_activity(fileInput: FileModel) -> Tuple[bytes, str]:
+async def fetch_document_activity(fileInput: FileModel) -> Tuple[bytes, str, str]:
     log = logger.bind(activity="fetch_document", file_id=fileInput.id)
     log.info("starting_document_fetch", url=fileInput.link)
     
@@ -66,7 +63,7 @@ async def fetch_document_activity(fileInput: FileModel) -> Tuple[bytes, str]:
                      file_name=file_name, 
                      size_bytes=len(response.content))
             
-            return file_data.getvalue(), file_name
+            return file_data.getvalue(), file_name, fileInput.id
             
         except httpx.HTTPStatusError as e:
             log.error("http_error_during_fetch", 
@@ -81,8 +78,8 @@ async def fetch_document_activity(fileInput: FileModel) -> Tuple[bytes, str]:
         
 
 @activity.defn
-async def parse_document_activity(file_info: Tuple[bytes, str]) -> str:
-    data, file_name = file_info
+async def parse_document_activity(file_info: Tuple[bytes, str, str]) -> str:
+    data, file_name, file_id = file_info
     log = logger.bind(activity="parse_document", file_name=file_name)
     log.info("starting_document_parse")
     
@@ -115,7 +112,7 @@ async def parse_document_activity(file_info: Tuple[bytes, str]) -> str:
             raise DocumentProcessingError("No content found in document")
         
         elements = chunk_by_title(elements=parts)
-        elements_id = str(uuid.uuid4())
+        elements_id = file_id
         
         storage.store_chunk(elements_id, elements)
         
