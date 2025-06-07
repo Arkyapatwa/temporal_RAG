@@ -98,7 +98,7 @@ To run the application using Docker Compose, follow these steps:
 
 
 
-**Design Explanation:**
+## Design Explanation:
 
 1. Created a Temporal workflow using sandboxed as false to allow network operations and certain import.
 2. Created Activities to perform the following operations:
@@ -107,4 +107,21 @@ To run the application using Docker Compose, follow these steps:
     -   Read the file and convert it to a list of Elements.
     -   Insert data into the Milvus collection.
 3. Stored the List of Elements in global Variable as temporal doesnt support serialization of complex values/class.(Alternative: Could also store on DB for better processing and avoid memory leaks)
-4. Used Async io library to perform the operations like creating embeddings and inserting data into Milvus.(Used asyncio.create_task, asyncio.gather) 
+4. Used Async io library to perform the operations like creating embeddings and inserting data into Milvus.(Used asyncio.create_task, asyncio.gather)
+
+## Workflow Confirmation - Screenshot:
+
+![Screenshot 2025-06-07 173911](https://github.com/user-attachments/assets/c854a843-1736-4111-96a1-ec42a4e54d98)
+
+
+## Milvus Confirmation Data - Screenshot:
+
+![Screenshot 2025-06-07 164336](https://github.com/user-attachments/assets/661744ef-31a5-4380-8710-0fbd974fd075)
+
+
+
+
+
+
+
+
