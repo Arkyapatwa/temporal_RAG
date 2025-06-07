@@ -28,11 +28,16 @@ class MilvusConnection:
     
     def __init__(self):
         self.milvus_client = MilvusClient(host=MILVUS_HOST)
+        # check if db exists
+        if DB_NAME not in self.milvus_client.list_databases():
+            self.milvus_client.create_database(DB_NAME)
+            
         self.milvus_client.use_database(DB_NAME)
         if not self.milvus_client.has_collection(COLLECTION_NAME):
             fields = [
                 FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
                 FieldSchema(name="element_id", dtype=DataType.VARCHAR, max_length=36),
+                FieldSchema(name="file_id", dtype=DataType.VARCHAR, max_length=36),
                 FieldSchema(name="text", dtype=DataType.VARCHAR, max_length=500),
                 FieldSchema(name="embeddings", dtype=DataType.FLOAT_VECTOR, dim=3072),  # Adjust dimension
             ]
@@ -44,7 +49,7 @@ class MilvusConnection:
     def get_milvus_client(self) -> MilvusClient:
         return self.milvus_client
 
-    async def add_embeddings_batch(self, elements: List[Element], semaphore) -> str:
+    async def add_embeddings_batch(self, file_id: str, elements: List[Element], semaphore) -> str:
         if not elements:
             return
 
@@ -65,6 +70,7 @@ class MilvusConnection:
                     data.append(
                         {
                             "element_id": element.id,
+                            "file_id": file_id,
                             "text": element.text,
                             "embeddings": element.embeddings
                         }

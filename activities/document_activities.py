@@ -25,19 +25,19 @@ class StorageManager:
         self.db = MilvusConnection()
         self.chunks: Dict[str, DocumentChunk] = {}
     
-    def store_chunk(self, chunk_id: str, elements: List[Element]) -> None:
-        self.chunks[chunk_id] = DocumentChunk(id=chunk_id, elements=elements)
+    def store_chunk(self, file_id: str, elements: List[Element]) -> None:
+        self.chunks[file_id] = DocumentChunk(id=file_id, elements=elements)
     
-    def get_chunk(self, chunk_id: str) -> List[Element]:
-        chunk = self.chunks.get(chunk_id)
+    def get_chunk(self, file_id: str) -> List[Element]:
+        chunk = self.chunks.get(file_id)
         if not chunk:
-            raise DocumentProcessingError(f"Chunk {chunk_id} not found")
+            raise DocumentProcessingError(f"Chunk {file_id} not found")
         return chunk.elements
     
-    def update_chunk(self, chunk_id: str, elements: List[Element]) -> None:
-        if chunk_id not in self.chunks:
-            raise DocumentProcessingError(f"Chunk {chunk_id} not found")
-        self.chunks[chunk_id] = DocumentChunk(id=chunk_id, elements=elements)
+    def update_chunk(self, file_id: str, elements: List[Element]) -> None:
+        if file_id not in self.chunks:
+            raise DocumentProcessingError(f"Chunk {file_id} not found")
+        self.chunks[file_id] = DocumentChunk(id=file_id, elements=elements)
     
     async def cleanup(self) -> None:
         await self.db.cleanup()
@@ -112,16 +112,15 @@ async def parse_document_activity(file_info: Tuple[bytes, str, str]) -> str:
             raise DocumentProcessingError("No content found in document")
         
         elements = chunk_by_title(elements=parts)
-        elements_id = file_id
         
-        storage.store_chunk(elements_id, elements)
+        storage.store_chunk(file_id, elements)
         
         log.info("document_parse_complete", 
-                 chunk_id=elements_id,
+                 file_id=file_id,
                  num_parts=len(parts),
                  num_elements=len(elements))
         
-        return elements_id
+        return file_id
         
     except DocumentProcessingError:
         raise
@@ -132,14 +131,14 @@ async def parse_document_activity(file_info: Tuple[bytes, str, str]) -> str:
     
     
 @activity.defn
-async def embeddings_document_activity(elements_id: str, batch_size: int = 10) -> str:
-    log = logger.bind(activity="embeddings_document", chunk_id=elements_id)
+async def embeddings_document_activity(file_id: str, batch_size: int = 10) -> str:
+    log = logger.bind(activity="embeddings_document", file_id=file_id)
     log.info("starting_document_embedding", batch_size=batch_size)
     
     try:
         from openai_connections import OpenAIConnection
         openai_connection = OpenAIConnection()
-        elements = storage.get_chunk(elements_id)
+        elements = storage.get_chunk(file_id)
         
         if not elements:
             logger.error("No elements found for storage")
@@ -158,13 +157,13 @@ async def embeddings_document_activity(elements_id: str, batch_size: int = 10) -
                 log.error("embedding_produced_no_results")
                 raise DocumentProcessingError("Embedding process produced no results")
             
-            storage.update_chunk(elements_id, embedded_elements)
+            storage.update_chunk(file_id, embedded_elements)
             
             log.info("document_embedding_complete",
                      num_elements=len(embedded_elements),
                      num_batches=len(results_batched))
             
-            return elements_id
+            return file_id
             
         except asyncio.TimeoutError as e:
             log.error("embedding_timeout", error=str(e))
@@ -179,14 +178,14 @@ async def embeddings_document_activity(elements_id: str, batch_size: int = 10) -
     
 
 @activity.defn
-async def store_document_activity(elements_id: str, batch_size: int = 10, max_concurrent_tasks: int = 5) -> str:
-    log = logger.bind(activity="store_document", chunk_id=elements_id)
+async def store_document_activity(file_id: str, batch_size: int = 10, max_concurrent_tasks: int = 5) -> str:
+    log = logger.bind(activity="store_document", file_id=file_id)
     log.info("starting_document_storage",
              batch_size=batch_size,
              max_concurrent_tasks=max_concurrent_tasks)
     
     try:
-        elements = storage.get_chunk(elements_id)
+        elements = storage.get_chunk(file_id)
         
         if not elements:
             logger.error("No elements found for storage")
@@ -196,7 +195,7 @@ async def store_document_activity(elements_id: str, batch_size: int = 10, max_co
         tasks = []
         for i in range(0, len(elements), batch_size):
             chunk = elements[i:i+batch_size]
-            tasks.append(asyncio.create_task(MilvusConnection().add_embeddings_batch(chunk, semaphore)))
+            tasks.append(asyncio.create_task(MilvusConnection().add_embeddings_batch(file_id, chunk, semaphore)))
         
         try:
             await asyncio.gather(*tasks)
@@ -205,7 +204,7 @@ async def store_document_activity(elements_id: str, batch_size: int = 10, max_co
                      total_elements=len(elements),
                      num_batches=len(tasks))
             
-            return f"Successfully stored {len(elements)} elements in {len(tasks)} batches"
+            return f"Successfully stored {len(elements)} elements in {len(tasks)} batches for file-id: {file_id}"
             
         except asyncio.TimeoutError as e:
             logger.error(f"Storage operation timed out: {str(e)}")
