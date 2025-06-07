@@ -111,7 +111,8 @@ To run the application using Docker Compose, follow these steps:
 
 ## Workflow Confirmation - Screenshot:
 
-![Screenshot 2025-06-07 163947](https://github.com/user-attachments/assets/7c622856-52ac-4240-b3b2-2eede5babd48)
+![Screenshot 2025-06-07 173911](https://github.com/user-attachments/assets/c854a843-1736-4111-96a1-ec42a4e54d98)
+
 
 ## Milvus Confirmation Data - Screenshot:
 
